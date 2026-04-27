@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Document {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String         @db.ObjectId
+  user             User           @relation(fields: [userId], references: [id])
+  documentType     String? // optional
+  data             Json?
+  summery          String? // optional
+  extractedText    String? // optional
+  expiryDate       DateTime?
+  riskLevel        RiskEnum?
+  renewalRemaining String?
+  expiryNotified   Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  notifications    Notification[]
+}
+
+model Notification {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  receiverId String    @db.ObjectId
+  title      String
+  body       String
+  isRead     Boolean   @default(false)
+  documentId String?   @db.ObjectId
+  docuement  Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model User {
+  id                    String        @id @default(auto()) @map("_id") @db.ObjectId
+  fullName              String
+  email                 String        @unique
+  password              String
+  fcmToken              String?
+  faceToken             String?
+  profileImage          String        @default("")
+  faceVerified          Boolean       @default(false)
+  role                  userRole      @default(USER)
+  isDeleted             Boolean       @default(false)
+  isSubscribed          Boolean       @default(false)
+  appNotificationActive Boolean       @default(true)
+  stripePaymentId       String?
+  planExpirationDate    DateTime?     @updatedAt
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  OTP                   OTP?
+  subscription          Subscription?
+  documents             Document[]
+}
+
+model Plan {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  planName      String
+  amount        Float
+  currency      String
+  interval      Interval       @default(month)
+  intervalCount Int
+  freeTrialDays Int?
+  productId     String
+  priceId       String
+  active        Boolean
+  description   String?
+  features      String[]
+  subscriptions Subscription[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Subscription {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String        @unique @db.ObjectId
+  planId          String        @db.ObjectId
+  startDate       DateTime
+  endDate         DateTime?
+  amount          Float
+  paymentStatus   PaymentStatus @default(PENDING)
+  stripePaymentId String        @unique
+  user            User?         @relation(fields: [userId], references: [id])
+  plan            Plan?         @relation(fields: [planId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model OTP {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  otpCode      String
+  otpExpiresAt DateTime // Security timeout for OTP validation
+  userId       String   @unique @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, otpCode]) // Ensure unique active OTPs per user
+  @@index([otpExpiresAt]) // For cleanup of expired OTPs
+}
+
+enum userRole {
+  USER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELLED
+}
+
+enum SubscriptionPlanType {
+  MONTHLY
+  YEARLY
+  FREE_TRIAL
+}
+
+enum Interval {
+  day
+  week
+  month
+  year
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+  REFUNDED
+}
+
+enum RiskEnum {
+  LOW
+  MEDIUM
+  HIGH
+}
