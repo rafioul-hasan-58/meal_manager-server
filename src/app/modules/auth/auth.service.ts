@@ -369,13 +369,13 @@ export const AuthService = {
   forgotPassword: async (email: string) => {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // if (!user) {
-    //   throw new ApiError(status.NOT_FOUND, "User not found!");
-    // }
+    if (!user) {
+      throw new ApiError(status.NOT_FOUND, "User not found!");
+    }
 
-    // if (!user.faceVerified) {
-    //   throw new ApiError(status.UNAUTHORIZED, "Your face is not verified!");
-    // }
+    if (!user.faceVerified) {
+      throw new ApiError(status.UNAUTHORIZED, "Your face is not verified!");
+    }
 
     // Step 1: Generate OTP
     const res = await sendOTP(user.id);

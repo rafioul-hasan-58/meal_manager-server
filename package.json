@@ -1,5 +1,5 @@
 {
-  "name": "ladariusborner-server",
+  "name": "devlearner-server",
   "version": "0.0.1",
   "main": "server.js",
   "scripts": {
@@ -8,12 +8,13 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "prisma:gen": "prisma generate",
+    "prisma": "npx prisma generate && npx prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:push": "prisma db push"
   },
   "keywords": [],
   "license": "ISC",
-  "description": "Ladariusborner-server",
+  "description": "devlearner-server",
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
