@@ -7,44 +7,198 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 model User {
-  id                    String        @id @default(auto()) @map("_id") @db.ObjectId
-  fullName              String
-  email                 String        @unique
-  password              String
-  fcmToken              String?
-  faceToken             String?
-  profileImage          String        @default("")
-  faceVerified          Boolean       @default(false)
-  role                  userRole      @default(USER)
-  isDeleted             Boolean       @default(false)
-  isSubscribed          Boolean       @default(false)
-  appNotificationActive Boolean       @default(true)
-  stripePaymentId       String?
-  planExpirationDate    DateTime?     @updatedAt
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  OTP                   OTP?
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  fullName         String
+  email            String            @unique
+  password         String
+  phone            String?
+  profileImage     String            @default("")
+  role             GlobalRole        @default(USER)
+  isDeleted        Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  isVerified       Boolean           @default(false)
+  OTP              OTP?
+  messAdmin        Mess?             @relation("MessAdmin")
+  messMembership   MessMember?
+  meals            MealEntry[]
+  bazarEntries     BazarEntry[]
+  cookingSchedules CookingSchedule[]
 }
-
 
 model OTP {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   otpCode      String
-  otpExpiresAt DateTime // Security timeout for OTP validation
+  otpExpiresAt DateTime
   userId       String   @unique @db.ObjectId
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@unique([userId, otpCode]) // Ensure unique active OTPs per user
-  @@index([otpExpiresAt]) // For cleanup of expired OTPs
+  @@unique([userId, otpCode])
+  @@index([otpExpiresAt])
 }
 
-enum userRole {
+model Mess {
+  id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  address            String?
+  description        String?
+  approxTotalMembers Int     @default(1)
+  monthlyMealRate    Float   @default(0) // cost per meal unit
+  currency           String  @default("BDT")
+  isActive           Boolean @default(true)
+
+  adminId String @unique @db.ObjectId
+  admin   User   @relation("MessAdmin", fields: [adminId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members          MessMember[]
+  meals            MealEntry[]
+  bazarEntries     BazarEntry[]
+  cookingSchedules CookingSchedule[]
+  monthlyReports   MonthlyReport[]
+}
+
+// MESS MEMBER  (one membership per user)
+model MessMember {
+  id        String       @id @default(auto()) @map("_id") @db.ObjectId
+  messId    String       @db.ObjectId
+  mess      Mess         @relation(fields: [messId], references: [id], onDelete: Cascade)
+  userId    String       @unique @db.ObjectId
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messRole  MessRole     @default(MEMBER)
+  status    MemberStatus @default(ACTIVE)
+  joinedAt  DateTime     @default(now())
+  removedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([messId])
+}
+
+// MEAL ENTRY  (per member per day)
+model MealEntry {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  messId String @db.ObjectId
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date       DateTime // the day this meal belongs to
+  breakfast  Float    @default(0)
+  lunch      Float    @default(0)
+  dinner     Float    @default(0)
+  totalMeals Float    @default(0) // computed: breakfast+lunch+dinner
+  note       String?
+
+  isUndone Boolean   @default(false) // soft undo flag
+  undoneAt DateTime?
+  undoneBy String?   @db.ObjectId // manager who undid it
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([messId, userId, date]) // one entry per member per day
+  @@index([messId, date])
+}
+
+// BAZAR ENTRY  (market / grocery expense)
+model BazarEntry {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  messId String @db.ObjectId
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId // who did the shopping
+  user   User   @relation(fields: [userId], references: [id])
+
+  date         DateTime
+  amount       Float
+  description  String?
+  receiptImage String? // optional receipt photo URL
+
+  isVerified Boolean   @default(false) // manager approval
+  verifiedBy String?   @db.ObjectId
+  verifiedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([messId, date])
+}
+
+// COOKING SCHEDULE
+model CookingSchedule {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  messId String @db.ObjectId
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  userId String @db.ObjectId // assigned cook
+  user   User   @relation(fields: [userId], references: [id])
+
+  date     DateTime
+  mealTime MealTime
+  note     String?
+  status   ScheduleStatus @default(ASSIGNED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([messId, date, mealTime]) // one cook per meal slot per day
+  @@index([messId, date])
+}
+
+// MONTHLY REPORT  (auto-generated summary)
+model MonthlyReport {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  messId String @db.ObjectId
+  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+
+  month          Int // 1–12
+  year           Int
+  totalMeals     Float     @default(0)
+  totalBazarCost Float     @default(0)
+  mealRate       Float     @default(0) // totalBazarCost / totalMeals
+  isFinalized    Boolean   @default(false)
+  finalizedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([messId, month, year])
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+enum GlobalRole {
   USER
+  SUPER_ADMIN
+}
+
+enum MessRole {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  REMOVED
+}
+
+enum MealTime {
+  BREAKFAST
+  LUNCH
+  DINNER
+}
+
+enum ScheduleStatus {
+  ASSIGNED
+  COMPLETED
+  SKIPPED
 }
 
 enum Gender {
@@ -52,16 +206,3 @@ enum Gender {
   FEMALE
   OTHER
 }
-
-enum UserStatus {
-  PENDING
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  AVAILABLE
-  UNAVAILABLE
-}
-
-
-
-

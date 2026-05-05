@@ -2,10 +2,7 @@ import { NextFunction, Request, Response, Router } from "express";
 import { UserValidation } from "./user.validation";
 import validateRequest from "../../middlewares/validateRequest";
 import { UserController } from "./user.controller";
-import ApiError from "../../errors/ApiError";
-import status from "http-status";
 import auth from "../../middlewares/auth";
-import { upload } from "../../utils/upload";
 import { parseBody } from "../../middlewares/parseBody";
 import { uploadFile } from "../../helpers/uploadFile";
 const router = Router();
@@ -21,9 +18,9 @@ router.get(
 
 router.post(
   "/register",
-  validateRequest(UserValidation.createUserValidationSchema),
+  validateRequest(UserValidation.registerSchema),
   UserController.register
-); // ✅
+);
 
 router.post(
   "/update-face-token",

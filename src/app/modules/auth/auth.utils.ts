@@ -3,13 +3,14 @@ import axios from "axios";
 import FormData from "form-data";
 import fetch from "node-fetch";
 import config from "../../../config";
+import { GlobalRole } from "@prisma/client";
 
 export type IJwtPayload = {
 	id?: string;
 	fullName?: string;
 	email: string;
-	profilePic?: string | null;
-	role: "USER"
+	profileImage?: string | null;
+	role: GlobalRole
 };
 export type ILoginJwtPayload = {
 	id: string;

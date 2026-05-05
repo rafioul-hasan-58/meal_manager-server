@@ -6,10 +6,11 @@ import prisma from "../../lib/prisma";
 import QueryBuilder from "../../builder/QueryBuilder";
 import { createLoginToken, createToken } from "../auth/auth.utils";
 import config from "../../../config";
+import { RegisterInput } from "./user.validation";
 
 
 export const UserService = {
-  register: async (payload: User) => {
+  register: async (payload: RegisterInput) => {
     const isUserExist = await prisma.user.findUnique({
       where: { email: payload.email },
     });
@@ -19,26 +20,33 @@ export const UserService = {
     }
 
     const hashedPassword = await hashPassword(payload.password ?? "");
-    const userData = {
-      ...payload,
-      password: hashedPassword
-    };
 
-    const user = await prisma.user.create({
-      data: userData
-    })
-    const jwtPayload = {
-      id: user.id
-    };
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create(
+        {
+          data: {
+            fullName: payload.fullName,
+            email: payload.email,
+            password: hashedPassword,
+            phone:payload.phone
 
-    const accessToken = createLoginToken(
-      jwtPayload,
-      config.jwt.access_secret as string,
-      config.jwt.access_expires_in as string
-    );
+          }
+        }
+      );
+      const mess = await tx.mess.create(
+        {
+          data: { 
+            adminId:user.id,
+            name:payload.messName,
+            address:payload.messAddress,
+            description:payload.messDescription,
+            approxTotalMembers:payload.approxTotalMembers
+           }
+        });
+      return { user, mess };
+    });
     return {
-      userData: jwtPayload,
-      accessToken
+      message: "Your account has been created.Please verify!"
     }
   },
   getAllUserFromDB: async (query: Record<string, unknown>) => {
@@ -85,15 +93,12 @@ export const UserService = {
       data: {
         fullName: payload.fullName,
         profileImage: payload.profileImage || "",
-        faceToken: payload.faceToken,
-        fcmToken: payload.fcmToken
       },
       select: {
         id: true,
         fullName: true,
         email: true,
         profileImage: true,
-        faceToken: true,
         role: true,
         createdAt: true,
         updatedAt: true,
