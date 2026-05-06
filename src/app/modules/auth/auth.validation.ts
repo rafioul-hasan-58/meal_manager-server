@@ -13,6 +13,9 @@ const loginValidationSchema = z.object({
 		.string()
 		.min(6, { message: "Password must be at least 6 characters long" }),
 });
+const emailValidationSchema = z.object({
+	email: z.string().email({ message: "Invalid email address" })
+});
 
 const changePasswordValidationSchema = z.object({
 	currentPassword: z
@@ -46,6 +49,7 @@ const faceTokenValidationSchema = z.object({
 	faceToken: z.string().nonempty("Face Token Is Required!")
 })
 export const AuthValidation = {
+	emailValidationSchema,
 	faceTokenValidationSchema,
 	loginValidationSchema,
 	socialLoginValidationSchema,

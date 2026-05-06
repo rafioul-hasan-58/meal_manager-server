@@ -4,38 +4,20 @@ import status from "http-status";
 import { generateOTP } from "./generateOTP";
 import { sendMail } from "./sendEmail";
 
-export const sendOTP = async (userId: string) => {
+export const sendOTP = async (email: string) => {
   // Step 1️⃣: Generate OTP and expiry time
   const otpCode = generateOTP().toString();
   const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 10 min expiry
 
   // Step 2️⃣: Upsert OTP
-  const otp = await prisma.oTP.upsert({
-    where: { userId },
-    update: {
+  const otp = await prisma.oTP.create({
+    data: {
       otpCode,
-      otpExpiresAt,
-      updatedAt: new Date(),
-    },
-    create: {
-      otpCode,
-      otpExpiresAt,
-      userId,
-    },
+      otpExpiresAt
+    }
   });
-
-  // Step 3️⃣: Fetch user
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user) {
-    throw new ApiError(status.NOT_FOUND, "User not found while sending OTP!");
-  }
-
   // Step 4️⃣: Send OTP via email
-  const res = await sendMail(user.email, otpCode);
+  const res = await sendMail(email, otpCode);
   console.log("res", res)
   return {
     message: "OTP sent successfully",

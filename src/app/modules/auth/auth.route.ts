@@ -9,13 +9,10 @@ const router = Router();
 
 router.post("/verify-otp", AuthController.verifyOTP);
 router.post("/verify-otp-login", AuthController.verifyOTP);
-router.post("/verify-with-mail", auth(), AuthController.verifyWithMail);
-
 router.post(
-  "/verify-with-face",
-  auth(),
-  uploadFile.loginImage,
-  AuthController.verifyWithFace
+  "/verify-email",
+  validateRequest(AuthValidation.emailValidationSchema),
+  AuthController.verifyWithMail
 );
 
 router.post(
