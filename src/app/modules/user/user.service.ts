@@ -44,6 +44,7 @@ const register = async (payload: RegisterInput) => {
       userId: user.id,
       messId: mess.id,
       email: user.email,
+      profileImage: user.profileImage,
       globalRole: user.role
     }
 
@@ -111,32 +112,7 @@ const updateProfile = async (userId: string, payload: Partial<User>) => {
   });
 };
 
-// ── updateFaceToken ─────────────────────────────────────────────────────────
-const updateFaceToken = async (userId: string, faceToken: string) => {
-  const isUserExist = await prisma.user.findUnique({ where: { id: userId } });
-  if (!isUserExist) throw new ApiError(status.NOT_FOUND, "User not found!");
 
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: { faceToken, faceVerified: true },
-  });
-
-  const userData = {
-    id: user.id,
-    fullName: user.fullName ?? undefined,
-    email: user.email,
-    profileImage: user.profileImage,
-    role: user.role,
-  };
-
-  const accessToken = createToken(
-    userData,
-    config.jwt.access_secret as string,
-    config.jwt.access_expires_in as string
-  );
-
-  return { userData, accessToken };
-};
 
 // ── getSingleUserByIdFromDB ─────────────────────────────────────────────────
 const getSingleUserByIdFromDB = async (userId: string) => {
@@ -167,7 +143,6 @@ export const UserService = {
   register,
   getAllUserFromDB,
   updateProfile,
-  updateFaceToken,
   getSingleUserByIdFromDB,
   myProfile,
   deleteUserFromDB,
