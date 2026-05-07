@@ -28,10 +28,12 @@ model User {
 
 model OTP {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
   otpCode      String
   otpExpiresAt DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
   @@index([otpExpiresAt])
 }
 

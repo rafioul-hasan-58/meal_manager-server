@@ -6,7 +6,7 @@ let server: Server;
 
 async function main() {
   server = app.listen(config.port, () => {
-    console.log("devlearner sever running in:",config.port);
+    console.log("meal manager server running in:",config.port);
   });
   const exitHandler = () => {
     if (server) {

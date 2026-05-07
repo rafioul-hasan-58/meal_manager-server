@@ -3,11 +3,14 @@ import auth from "../../middlewares/auth";
 import validateRequest from "../../middlewares/validateRequest";
 import { AuthController } from "./auth.controller";
 import { AuthValidation } from "./auth.validation";
-import { uploadFile } from "../../helpers/uploadFile";
 
 const router = Router();
 
-router.post("/verify-otp", AuthController.verifyOTP);
+router.post(
+  "/verify-otp",
+  validateRequest(AuthValidation.otpValidationSchema),
+  AuthController.verifyOTP
+);
 router.post("/verify-otp-login", AuthController.verifyOTP);
 router.post(
   "/verify-email",

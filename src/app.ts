@@ -47,7 +47,7 @@ app.use("/uploads", express.static(path.join(__dirname, "..", "public", "uploads
 // Route handler for root endpoint
 app.get("/", (req: Request, res: Response) => {
   res.send({
-    Message: "devlearner server is running!",
+    Message: "meal manager server is running!",
   });
 });
 

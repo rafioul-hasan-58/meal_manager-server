@@ -27,7 +27,6 @@ export const createAccountSchema = z
       .regex(/[0-9]/, "Must contain at least one number"),
     phone: z
       .string()
-      .regex(/^[0-9+\-\s]{7,15}$/, "Invalid phone number")
       .optional()
       .or(z.literal("")),
   })

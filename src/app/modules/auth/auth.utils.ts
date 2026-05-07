@@ -6,11 +6,9 @@ import config from "../../../config";
 import { GlobalRole } from "@prisma/client";
 
 export type IJwtPayload = {
-	id?: string;
-	fullName?: string;
-	email: string;
-	profileImage?: string | null;
-	role: GlobalRole
+	userId?: string;
+	messId?: string;
+	globalRole:GlobalRole
 };
 export type ILoginJwtPayload = {
 	id: string;

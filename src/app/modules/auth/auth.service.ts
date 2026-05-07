@@ -9,62 +9,15 @@ import { sendOTP } from "../../utils/sendOTP";
 
 // ── verifyOTP ────────────────────────────────────────────────────────────────
 export const verifyOTP = async (email: string, otp: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new ApiError(status.NOT_FOUND, "User not found!");
-
-  const savedOtp = await prisma.oTP.findUnique({ where: { userId: user.id } });
+  const savedOtp = await prisma.oTP.findUnique({ where: { email } });
   if (!savedOtp) throw new ApiError(status.BAD_REQUEST, "OTP Not found!");
   if (savedOtp.otpExpiresAt! < new Date()) throw new ApiError(status.BAD_REQUEST, "OTP has expired!");
   if (Number(savedOtp.otpCode) !== Number(otp)) throw new ApiError(status.BAD_REQUEST, "OTP not matched!");
 
   await prisma.oTP.delete({ where: { id: savedOtp.id } });
 
-  const jwtPayload = {
-    id: user.id,
-    fullName: user.fullName ?? undefined,
-    email: user.email,
-    appNotificationActive: user.appNotificationActive,
-    profileImage: user.profileImage,
-    role: user.role,
-  };
 
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.access_secret as string,
-    config.jwt.access_expires_in as string
-  );
-
-  return { userData: jwtPayload, accessToken };
-};
-
-// ── verifyOTPLogin ───────────────────────────────────────────────────────────
-export const verifyOTPLogin = async (email: string, otp: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new ApiError(status.NOT_FOUND, "User not found!");
-
-  const savedOtp = await prisma.oTP.findUnique({ where: { userId: user.id } });
-  if (!savedOtp) throw new ApiError(status.BAD_REQUEST, "OTP Not found!");
-  if (savedOtp.otpExpiresAt! < new Date()) throw new ApiError(status.BAD_REQUEST, "OTP has expired!");
-  if (Number(savedOtp.otpCode) !== Number(otp)) throw new ApiError(status.BAD_REQUEST, "OTP not matched!");
-
-  await prisma.oTP.delete({ where: { id: savedOtp.id } });
-
-  const jwtPayload = {
-    id: user.id,
-    fullName: user.fullName ?? undefined,
-    email: user.email,
-    profileImage: user.profileImage,
-    appNotificationActive: user.appNotificationActive,
-    role: user.role,
-  };
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.access_secret as string,
-    config.jwt.access_expires_in as string
-  );
-
-  return { accessToken };
+  return { message: "OTP verified successfully!" };
 };
 
 
@@ -189,7 +142,6 @@ export const resendOtp = async (email: string) => {
 
 export const AuthService = {
   verifyOTP,
-  verifyOTPLogin,
   verifyWithMail,
   loginUser,
   socialLogin,

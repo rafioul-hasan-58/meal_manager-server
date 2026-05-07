@@ -16,17 +16,6 @@ export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── verifyOTPLogin ───────────────────────────────────────────────────────────
-export const verifyOTPLogin = catchAsync(async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
-  const result = await AuthService.verifyOTPLogin(email, otp);
-  sendResponse(res, {
-    success: true,
-    statusCode: status.OK,
-    message: "OTP verified successfully!",
-    data: result,
-  });
-});
 
 // ── socialLogin ──────────────────────────────────────────────────────────────
 export const socialLogin = catchAsync(async (req: Request, res: Response) => {
@@ -110,7 +99,6 @@ export const resendOTP = catchAsync(async (req: Request, res: Response) => {
 // ── AuthController (re-export as named object for backward compatibility) ────
 export const AuthController = {
   verifyOTP,
-  verifyOTPLogin,
   socialLogin,
   verifyWithMail,
   login,

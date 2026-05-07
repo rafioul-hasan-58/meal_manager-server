@@ -28,6 +28,7 @@ export default {
     email_from: process.env.SMTP_EMAIL_FROM,
     host: process.env.SMTP_HOST,
     name: process.env.SMTP_NAME,
+    port: process.env.SMTP_PORT,
   },
   reset_pass_link: process.env.RESET_PASS_LINK,
   emailSender: {
