@@ -22,13 +22,7 @@ router.post(
   UserController.register
 );
 
-router.post(
-  "/update-face-token",
-  uploadFile.uploadFaceImage,
-  parseBody,
-  auth(),
-  UserController.updateFaceToken
-); // ✅
+
 router.get(
   "/my-profile",
   auth(),

@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 const corsOptions = {
   origin: [
     "http://localhost:3000",
+    "https://meal.manager.sourob.com"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],

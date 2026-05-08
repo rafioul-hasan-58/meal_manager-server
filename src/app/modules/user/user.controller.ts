@@ -88,29 +88,6 @@ const myProfile = catchAsync(async (req, res) => {
   });
 });
 
-// ── updateFaceToken ─────────────────────────────────────────────────────────
-const updateFaceToken = catchAsync(async (req, res) => {
-  const { id } = req.user;
-  const faceToken = await getImageUrl(req.file as any);
-  if (!faceToken) {
-    throw new ApiError(
-      status.NOT_FOUND,
-      `Face Token Not Found!${config.environment === "Development" ? " In user controller" : ""}`
-    );
-  }
-
-  const validation = await validateSelfie(faceToken);
-  if (!validation?.valid) {
-    throw new ApiError(status.BAD_REQUEST, validation.message);
-  }
-
-  const result = await UserService.updateFaceToken(id, faceToken);
-  sendResponse(res, {
-    statusCode: status.OK,
-    message: "Identity verified successfully!",
-    data: result,
-  });
-});
 
 // ── getSingleUserById ───────────────────────────────────────────────────────
 const getSingleUserById = catchAsync(async (req, res) => {
@@ -140,7 +117,6 @@ export const UserController = {
   getAllUser,
   updateProfile,
   myProfile,
-  updateFaceToken,
   getSingleUserById,
   deleteUser,
 };

@@ -59,7 +59,6 @@ export const socialLogin = async (payload: {
       fullName: true,
       email: true,
       profileImage: true,
-      faceVerified: true,
       role: true,
     },
   });
