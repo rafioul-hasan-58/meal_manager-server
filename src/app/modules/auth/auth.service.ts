@@ -109,7 +109,7 @@ export const forgotPassword = async (email: string) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) throw new ApiError(status.NOT_FOUND, "User not found!");
 
-  const res = await sendOTP(user.id);
+  const res = await sendOTP(user.email);
   return { message: res.message };
 };
 

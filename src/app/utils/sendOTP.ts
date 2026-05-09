@@ -22,8 +22,7 @@ export const sendOTP = async (email: string) => {
   });
 
   // Step 4️⃣: Send OTP via email
-  const res = await mailService.sendEmail(email, otpCode,"OTP Verification Code");
-  console.log("res", res)
+  await mailService.sendEmail(email, otpCode, "OTP Verification Code");
   return {
     message: "OTP sent successfully",
     expiresAt: otp.otpExpiresAt,
