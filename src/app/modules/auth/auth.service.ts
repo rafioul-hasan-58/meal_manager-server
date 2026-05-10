@@ -6,6 +6,7 @@ import prisma from "../../lib/prisma";
 import config from "../../../config";
 import { comparePassword } from "../../utils/comparePassword";
 import { sendOTP } from "../../utils/sendOTP";
+import { match } from "assert";
 
 // ── verifyOTP ────────────────────────────────────────────────────────────────
 export const verifyOTP = async (email: string, otp: string) => {
@@ -29,19 +30,43 @@ export const verifyWithMail = async (email: string) => {
 
 // ── loginUser ────────────────────────────────────────────────────────────────
 export const loginUser = async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique(
+    {
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        profileImage: true,
+        password: true,
+        role: true,
+        matchMembership: {
+          select: {
+            matchId: true,
+            matchRole: true
+          }
+        }
+      }
+    }
+  );
   if (!user) throw new ApiError(status.NOT_FOUND, "User not found!");
+  const isPasswordMatched = await comparePassword(password, user.password ?? "");
+  if (!isPasswordMatched) throw new ApiError(status.UNAUTHORIZED, "Password is incorrect!");
 
-  const jwtPayload = { id: user.id };
+  const jwtPayload = {
+    userId: user.id,
+    matchId: user.matchMembership?.matchId,
+    email: user.email,
+    profileImage: user.profileImage,
+    globalRole: user.role,
+    matchRole: user.matchMembership?.matchRole
+  }
 
-  const accessToken = createLoginToken(
+  const accessToken = createToken(
     jwtPayload,
     config.jwt.access_secret as string,
     config.jwt.access_expires_in as string
   );
 
-  const isPasswordMatched = await comparePassword(password, user.password ?? "");
-  if (!isPasswordMatched) throw new ApiError(status.UNAUTHORIZED, "Password is incorrect!");
 
   return { accessToken };
 };
@@ -62,7 +87,6 @@ export const socialLogin = async (payload: {
       role: true,
     },
   });
-
 
 
   const newUser = await prisma.user.create({
@@ -119,6 +143,7 @@ export const resetPassword = async (
   newPassword: string,
   confirmPassword: string
 ) => {
+  console.log("email",email)
   if (newPassword !== confirmPassword) throw new ApiError(status.BAD_REQUEST, "Passwords do not match!");
 
   const user = await prisma.user.findUnique({ where: { email } });
@@ -139,6 +164,35 @@ export const resendOtp = async (email: string) => {
   return { message: "New OTP has been sent to your email for reset password." };
 };
 
+const verifyForgotPasswordOtp = async (email: string, otp: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email
+    }
+  });
+  if (!user) {
+    throw new ApiError(status.NOT_FOUND, "User not found!")
+  }
+  const savedOtp = await prisma.oTP.findUnique({ where: { email } });
+  if (!savedOtp) throw new ApiError(status.BAD_REQUEST, "OTP Not found!");
+  if (savedOtp.otpExpiresAt! < new Date()) throw new ApiError(status.BAD_REQUEST, "OTP has expired!");
+  if (Number(savedOtp.otpCode) !== Number(otp)) throw new ApiError(status.BAD_REQUEST, "OTP not matched!");
+
+  await prisma.oTP.delete({ where: { id: savedOtp.id } });
+
+  const jwtPayload = {
+    userId: user.id,
+    email: user.email,
+    globalRole: user.role
+  }
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.access_secret as string,
+    config.jwt.access_expires_in as string
+  );
+  return { accessToken };
+};
+
 export const AuthService = {
   verifyOTP,
   verifyWithMail,
@@ -146,6 +200,7 @@ export const AuthService = {
   socialLogin,
   changePassword,
   forgotPassword,
+  verifyForgotPasswordOtp,
   resetPassword,
   resendOtp,
 };

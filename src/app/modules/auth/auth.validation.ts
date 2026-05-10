@@ -36,6 +36,8 @@ const changePasswordValidationSchema = z.object({
 const resetPasswordValidationSchema = z.object({
 	newPassword: z.string().min(6, "Password must be at least 6 characters"),
 	confirmPassword: z.string(),
+	email: z.string().email({ message: "Invalid email address" }),
+
 })
 	.refine((data) => data.newPassword === data.confirmPassword, {
 		message: "Passwords do not match!",

@@ -96,6 +96,16 @@ export const resendOTP = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+export const verifyForgotPasswordOtp = catchAsync(async (req: Request, res: Response) => {
+  const { email, otp } = req.body;
+  const result = await AuthService.verifyForgotPasswordOtp(email, otp);
+  sendResponse(res, {
+    statusCode: status.OK,
+    message: "OTP verified successfully!",
+    data: result
+  });
+});
+
 // ── AuthController (re-export as named object for backward compatibility) ────
 export const AuthController = {
   verifyOTP,
@@ -106,4 +116,5 @@ export const AuthController = {
   forgotPassword,
   resetPassword,
   resendOTP,
+  verifyForgotPasswordOtp
 };

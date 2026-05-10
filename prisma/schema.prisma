@@ -19,11 +19,13 @@ model User {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   isVerified       Boolean           @default(false)
-  messAdmin        Mess?             @relation("MessAdmin")
-  messMembership   MessMember?
-  meals            MealEntry[]
+  matchAdmin       Match?            @relation("MatchAdmin")
+  matchMembership  MatchMember?
   bazarEntries     BazarEntry[]
   cookingSchedules CookingSchedule[]
+  meals            MealEntry[]       @relation("MealOwner")
+  // meals added by this user
+  addedMeals       MealEntry[]       @relation("MealAddedBy")
 }
 
 model OTP {
@@ -37,7 +39,7 @@ model OTP {
   @@index([otpExpiresAt])
 }
 
-model Mess {
+model Match {
   id                 String  @id @default(auto()) @map("_id") @db.ObjectId
   name               String
   address            String?
@@ -48,68 +50,67 @@ model Mess {
   isActive           Boolean @default(true)
 
   adminId String @unique @db.ObjectId
-  admin   User   @relation("MessAdmin", fields: [adminId], references: [id])
+  admin   User   @relation("MatchAdmin", fields: [adminId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members          MessMember[]
+  members          MatchMember[]
   meals            MealEntry[]
   bazarEntries     BazarEntry[]
   cookingSchedules CookingSchedule[]
   monthlyReports   MonthlyReport[]
 }
 
-// MESS MEMBER  (one membership per user)
-model MessMember {
+// MATCH MEMBER  (one membership per user)
+model MatchMember {
   id        String       @id @default(auto()) @map("_id") @db.ObjectId
-  messId    String       @db.ObjectId
-  mess      Mess         @relation(fields: [messId], references: [id], onDelete: Cascade)
+  matchId   String       @map("matchId") @db.ObjectId
+  match     Match        @relation(fields: [matchId], references: [id], onDelete: Cascade)
   userId    String       @unique @db.ObjectId
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messRole  MessRole     @default(MEMBER)
+  matchRole MatchRole    @default(MEMBER)
   status    MemberStatus @default(ACTIVE)
   joinedAt  DateTime     @default(now())
   removedAt DateTime?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  @@index([messId])
+  @@index([matchId])
+  @@unique([matchId, userId])
 }
 
 // MEAL ENTRY  (per member per day)
 model MealEntry {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  messId String @db.ObjectId
-  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
-  userId String @db.ObjectId
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId   String @db.ObjectId
+  match     Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  // Meal Owner
+  userId    String @db.ObjectId
+  user      User   @relation("MealOwner", fields: [userId], references: [id], onDelete: Cascade)
+  // Who added this meal entry
+  addedById String @db.ObjectId
+  addedBy   User   @relation("MealAddedBy", fields: [addedById], references: [id])
 
   date       DateTime // the day this meal belongs to
   breakfast  Float    @default(0)
   lunch      Float    @default(0)
   dinner     Float    @default(0)
   totalMeals Float    @default(0) // computed: breakfast+lunch+dinner
-  note       String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  isUndone Boolean   @default(false) // soft undo flag
-  undoneAt DateTime?
-  undoneBy String?   @db.ObjectId // manager who undid it
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([messId, userId, date]) // one entry per member per day
-  @@index([messId, date])
+  @@unique([matchId, userId, date]) // one entry per member per day
+  @@index([matchId, date])
 }
 
 // BAZAR ENTRY  (market / grocery expense)
 model BazarEntry {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  messId String @db.ObjectId
-  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
-  userId String @db.ObjectId // who did the shopping
-  user   User   @relation(fields: [userId], references: [id])
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId  String @db.ObjectId // who did the shopping
+  user    User   @relation(fields: [userId], references: [id])
 
   date         DateTime
   amount       Float
@@ -123,16 +124,16 @@ model BazarEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([messId, date])
+  @@index([matchId, date])
 }
 
 // COOKING SCHEDULE
 model CookingSchedule {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  messId String @db.ObjectId
-  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
-  userId String @db.ObjectId // assigned cook
-  user   User   @relation(fields: [userId], references: [id])
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId  String @db.ObjectId // assigned cook
+  user    User   @relation(fields: [userId], references: [id])
 
   date     DateTime
   mealTime MealTime
@@ -141,16 +142,13 @@ model CookingSchedule {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([messId, date, mealTime]) // one cook per meal slot per day
-  @@index([messId, date])
 }
 
 // MONTHLY REPORT  (auto-generated summary)
 model MonthlyReport {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
-  messId String @db.ObjectId
-  mess   Mess   @relation(fields: [messId], references: [id], onDelete: Cascade)
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  match   Match  @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
   month          Int // 1–12
   year           Int
@@ -163,7 +161,7 @@ model MonthlyReport {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([messId, month, year])
+  @@unique([matchId, month, year])
 }
 
 // ─────────────────────────────────────────
@@ -174,7 +172,7 @@ enum GlobalRole {
   SUPER_ADMIN
 }
 
-enum MessRole {
+enum MatchRole {
   ADMIN
   MANAGER
   MEMBER

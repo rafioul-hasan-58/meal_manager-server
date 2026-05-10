@@ -1,7 +1,7 @@
 import status from "http-status";
 import { hashPassword } from "./user.utils";
 import ApiError from "../../errors/ApiError";
-import { User } from "@prisma/client";
+import { MatchRole, User } from "@prisma/client";
 import prisma from "../../lib/prisma";
 import QueryBuilder from "../../builder/QueryBuilder";
 import { createToken } from "../auth/auth.utils";
@@ -30,22 +30,30 @@ const register = async (payload: RegisterInput) => {
       },
     });
 
-    const mess = await tx.mess.create({
+    const match = await tx.match.create({
       data: {
         adminId: user.id,
-        name: payload.messName,
-        address: payload.messAddress,
-        description: payload.messDescription,
+        name: payload.matchName,
+        address: payload.matchAddress,
+        description: payload.matchDescription,
         approxTotalMembers: payload.approxTotalMembers,
+      },
+    });
+    const matchMember = await tx.matchMember.create({
+      data: {
+        matchId: match.id,
+        userId: user.id,
+        matchRole: MatchRole.ADMIN
       },
     });
 
     jwtPayload = {
       userId: user.id,
-      messId: mess.id,
+      matchId: match.id,
       email: user.email,
       profileImage: user.profileImage,
-      globalRole: user.role
+      globalRole: user.role,
+      matchRole: matchMember.matchRole
     }
 
     return { user };

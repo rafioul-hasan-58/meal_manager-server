@@ -30,20 +30,20 @@ export const createAccountSchema = z
       .or(z.literal("")),
   })
 
-export const messDetailsSchema = z.object({
-  messName: z
+export const matchDetailsSchema = z.object({
+  matchName: z
     .string()
-    .min(3, "Mess name must be at least 3 characters")
-    .max(100, "Mess name too long"),
+    .min(3, "Match name must be at least 3 characters")
+    .max(100, "Match name too long"),
 
-  messAddress: z
+  matchAddress: z
     .string()
     .min(5, "Address must be at least 5 characters")
     .max(200, "Address too long")
     .optional()
     .or(z.literal("")),
 
-  messDescription: z
+  matchDescription: z
     .string()
     .max(500, "Description too long")
     .optional()
@@ -57,10 +57,10 @@ export const messDetailsSchema = z.object({
 
 // ── Full schema (all steps combined for final submit)
 export const registerSchema = createAccountSchema
-  .and(messDetailsSchema);
+  .and(matchDetailsSchema);
 // ── Types inferred from schemas
 export type CreateAccountInput = z.infer<typeof createAccountSchema>;
-export type MessDetailsInput = z.infer<typeof messDetailsSchema>;
+export type MatchDetailsInput = z.infer<typeof matchDetailsSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 
 export const UserValidation = {
