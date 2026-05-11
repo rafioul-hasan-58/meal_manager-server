@@ -82,27 +82,23 @@ export const updateMemberStatus = catchAsync(async (req: Request, res: Response)
 });
 
 // ── getAllMembers ──────────────────────────────────────────────────────────────
-export const getAllMembers = catchAsync(async (req: Request, res: Response) => {
-    const matchId = req.params.matchId;
-    const query = {
-        ...req.query,
-        page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
-    } as any;
-    const result = await MatchService.getAllMembers(matchId, query);
+export const getAllMatchMembers = catchAsync(async (req: Request, res: Response) => {
+    const matchId = req.user.matchId;
+    const query = req.query
+    const result = await MatchService.getAllMatchMembers(matchId, query);
     sendResponse(res, {
         success: true,
         statusCode: status.OK,
-        message: "Members fetched successfully!",
+        message: "Match members fetched successfully!",
         data: result.data,
         meta: result.meta,
     });
 });
 
-// ── getSingleMember ───────────────────────────────────────────────────────────
+// ── getSingleMember
 export const getSingleMember = catchAsync(async (req: Request, res: Response) => {
-    const { matchId, userId } = req.params;
-    const result = await MatchService.getSingleMember(matchId, userId);
+    const { userId } = req.params;
+    const result = await MatchService.getSingleMember(userId);
     sendResponse(res, {
         success: true,
         statusCode: status.OK,
@@ -118,6 +114,6 @@ export const MatchController = {
     removeManyMembers,
     updateMemberRole,
     updateMemberStatus,
-    getAllMembers,
+    getAllMatchMembers,
     getSingleMember,
 };

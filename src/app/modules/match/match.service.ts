@@ -3,6 +3,7 @@ import { MatchRole, MemberStatus } from "@prisma/client";
 import ApiError from "../../errors/ApiError";
 import prisma from "../../lib/prisma";
 import { hashPassword } from "../user/user.utils";
+import QueryBuilder from "../../builder/QueryBuilder";
 
 // ── addMember ─────────────────────────────────────────────────────────────────
 export const addMember = async (
@@ -67,8 +68,6 @@ export const addMember = async (
 
         }
     };
-
-
 
     // Ensure match exists
     const match = await prisma.match.findUnique({ where: { id: matchId } });
@@ -246,50 +245,60 @@ export const updateMemberStatus = async (
     return updated;
 };
 
-// ── getAllMembers ──────────────────────────────────────────────────────────────
-export const getAllMembers = async (
+// ── getAll Match Members
+const getAllMatchMembers = async (
     matchId: string,
-    query: { status?: MemberStatus; matchRole?: MatchRole; page: number; limit: number }
+    query: Record<string, unknown>
 ) => {
-    const { status: memberStatus, matchRole, page, limit } = query;
 
     const match = await prisma.match.findUnique({ where: { id: matchId } });
     if (!match) throw new ApiError(status.NOT_FOUND, "Match not found!");
 
-    const where: any = { matchId };
-    if (memberStatus) where.status = memberStatus;
-    if (matchRole) where.matchRole = matchRole;
+    const userQuery = new QueryBuilder(prisma.matchMember, query)
+        .search(["user.fullName"])
+        .filter()
+        .rawFilter({ matchId })
+        .paginate()
+        .select({
+            id: true,
+            matchId: true,
+            userId: true,
+            matchRole: true,
+            status: true,
+            joinedAt: true,
+            user: {
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    phone: true,
+                    profileImage: true,
+                    role: true
+                }
+            }
+        });
 
-    const skip = (page - 1) * limit;
-    const [total, data] = await Promise.all([
-        prisma.matchMember.count({ where }),
-        prisma.matchMember.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { joinedAt: "asc" },
-            include: {
-                user: { select: { id: true, fullName: true, profileImage: true, email: true } },
-            },
-        }),
+    const [result, meta] = await Promise.all([
+        userQuery.execute(),
+        userQuery.countTotal(),
     ]);
 
     return {
-        meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-        data,
+        meta,
+        data: result,
     };
+
 };
 
-// ── getSingleMember ───────────────────────────────────────────────────────────
-export const getSingleMember = async (matchId: string, userId: string) => {
+// ── getSingleMember 
+const getSingleMember = async (userId: string) => {
     const member = await prisma.matchMember.findFirst({
-        where: { matchId, userId },
+        where: { userId },
         include: {
             user: { select: { id: true, fullName: true, profileImage: true, email: true } },
         },
     });
     if (!member) throw new ApiError(status.NOT_FOUND, "Member not found in this match!");
-
     return member;
 };
 
@@ -300,6 +309,6 @@ export const MatchService = {
     removeManyMembers,
     updateMemberRole,
     updateMemberStatus,
-    getAllMembers,
+    getAllMatchMembers,
     getSingleMember,
 };

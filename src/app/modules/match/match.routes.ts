@@ -23,11 +23,17 @@ router.post(
 
 // ── Read ──────────────────────────────────────────────────────────────────────
 
-// GET /match/:matchId/members
-router.get("/", auth(), MatchController.getAllMembers);
+router.get(
+  "/get-all-members",
+  auth(),
+  MatchController.getAllMatchMembers);
 
 // GET /match/:matchId/members/:userId
-router.get("/:userId", auth(), MatchController.getSingleMember);
+router.get(
+  "/member/:userId",
+  auth(),
+  MatchController.getSingleMember
+);
 
 // ── Update ────────────────────────────────────────────────────────────────────
 

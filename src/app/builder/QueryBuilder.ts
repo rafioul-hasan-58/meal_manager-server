@@ -148,7 +148,13 @@ class QueryBuilder {
     }
     return this;
   }
-
+  select(selectableFields: Record<string, boolean | object>) {
+    this.prismaQuery.select = {
+      ...this.prismaQuery.select,
+      ...selectableFields,
+    };
+    return this;
+  }
   // **Include Related Models*/
   include(inculpableFields: Record<string, boolean | object>) {
     this.prismaQuery.include = {
